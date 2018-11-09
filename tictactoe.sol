@@ -8,15 +8,9 @@ contract Tictactoe{
     
     
 	modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner is allowed to call this method.");
+        require(msg.sender == challanger, "Only owner is allowed to call this method.");
         _;
     }
-
-
-	constructor() public {
-		challanger = msg.sender;	
-	}
-
 	struct Game{
 		uint balance;
 		uint turn;
@@ -29,6 +23,13 @@ contract Tictactoe{
 	mapping (address => Game) games;
 
 
+	constructor() public {
+		challanger = msg.sender;
+		owner = msg.sender;
+	}
+
+
+
 
 	
     function start() 
@@ -36,19 +37,19 @@ contract Tictactoe{
     payable
     onlyOwner()
     {
-    	Game storage g = game[msg.sender];
-
+        Game storage g = games[msg.sender];
     	g.balance+=msg.value;
     	g.isset = true;
     	g.opponent = 0;
     	g.opp = false;
+    	g.turn = 1;
     } 
 
 	function join() 
 	public
 	payable
 	{
-		Game storage g = games[owner];
+		Game storage g = games[challanger];
 		require(g.isset && g.opp == false && msg.value == g.balance);
 		require(msg.sender != owner);
 		if(g.opp == false )
@@ -62,8 +63,8 @@ contract Tictactoe{
 
 	function playgame(uint row, uint col) 
 	public
-	payable
 	{
+	    Game storage g = games[owner];
 		uint8 player = 2;
 		if(msg.sender == owner)
 			player =1;
@@ -82,15 +83,15 @@ contract Tictactoe{
 				g.opponent.transfer(g.balance);
 
 			g.balance = 0;
-			return;	
 		}
-		if(is_board_full)
+		if(is_board_full())
 		{
 			owner.transfer(g.balance/2);
 			g.opponent.transfer(g.balance/2);
 			g.balance=0;
-			return;
 		}
+
+		g.turn = player;
 	}
 
 	function isWinner(uint player)
@@ -98,18 +99,17 @@ contract Tictactoe{
 	onlyOwner()
 	returns (bool winner)
 	{
-		if(check(owner,player,0,1,2,0,1,2) || check(host,player,0,1,2,2,1,0))
+		if(check(player,0,1,2,0,1,2) || check(player,0,1,2,2,1,0))
 			return true;
 
 		for(uint i = 0;i<3;i++)
 		{
-			if(check(owner,player,i,i,i,0,1,2)|| check(host,player,0,1,2,i,i,i))
+			if(check(player,i,i,i,0,1,2)|| check(player,0,1,2,i,i,i))
 				return true;
 		}	
 	}
 
-	function is_board_full()
-	public
+	function is_board_full() public returns (bool val)
 	{
 		Game storage g = games[owner];
 
@@ -129,5 +129,20 @@ contract Tictactoe{
 			return false;	
 
 	}
+
+	function check(uint player,uint r1, uint r2, uint r3, uint c1,uint c2, uint c3)
+	public returns (bool val)
+	{
+		Game storage g = games[owner];
+		if(g.board[r1][c1]==player && g.board[r2][c2]==player && g.board[r3][c3]==player)
+		{
+			return true;
+		}
+		else
+			return false;
+	}
+
+	
+
 
 }
