@@ -18,6 +18,7 @@ contract Tictactoe{
 		mapping(uint => mapping(uint => uint )) board;
 		bool isset;
 		bool opp;
+		bool end;
 	}
 
 	mapping (address => Game) games;
@@ -30,7 +31,7 @@ contract Tictactoe{
 
 
 
-
+	event win(string s);
 	
     function start() 
     public 
@@ -42,7 +43,8 @@ contract Tictactoe{
     	g.isset = true;
     	g.opponent = 0;
     	g.opp = false;
-    	g.turn = 1;
+    	g.turn = 2;
+    	g.end = false;
     } 
 
 	function join() 
@@ -69,7 +71,8 @@ contract Tictactoe{
 		if(msg.sender == owner)
 			player =1;
 
-		require(g.balance>0 && g.opp==true && row>=0 && col>=0 && row<3 && col<3 && g.board[row][col]==0  && g.turn!=player);
+		require(g.balance>0 && g.opp==true && row>=0 && col>=0 && row<3 && col<3 && g.board[row][col]==0  && g.turn!=player,"Invalid constraints");
+		require(g.end == false,"Game has ended");
 		g.board[row][col]=player;
 
 		
@@ -78,17 +81,26 @@ contract Tictactoe{
 			if(player==1)
 			{
 				owner.transfer(g.balance);
+				emit win("Challanger wins");
 			}
 			else
+			{
 				g.opponent.transfer(g.balance);
+				emit win("Opponent wins");
 
+			}
 			g.balance = 0;
+			g.end =true;
+
+
 		}
 		if(is_board_full())
 		{
 			owner.transfer(g.balance/2);
 			g.opponent.transfer(g.balance/2);
 			g.balance=0;
+			emit win("Game is tie !!");
+			g.end =true;
 		}
 
 		g.turn = player;
@@ -96,7 +108,6 @@ contract Tictactoe{
 
 	function isWinner(uint player)
 	public view 
-	onlyOwner()
 	returns (bool winner)
 	{
 		if(check(player,0,1,2,0,1,2) || check(player,0,1,2,2,1,0))
@@ -109,7 +120,7 @@ contract Tictactoe{
 		}	
 	}
 
-	function is_board_full() public returns (bool val)
+	function is_board_full() public view returns (bool val)
 	{
 		Game storage g = games[owner];
 
